@@ -1,0 +1,102 @@
+CREATE DATABASE coffeehub;
+use cofeehub;
+show tables;
+select* from city;
+select * from customers;
+select* from products;
+select * from sales;
+
+/*1.how many people in each city are estimated to consume coffee,given that 25% of the population does?*/
+
+select city_name,round((population*0.25)/1000000,2) as coffee_consumer_permil,city_rank from city
+order by 2 desc
+
+/*2. what is the total revenue generated from coffee sales across all cities in the last quarter of 2023?*/
+
+SELECT ci.city_name,sum(total) AS total_revenue
+FROM sales s
+join customers c on s.customer_id=c.customer_id
+join city ci on ci.city_id=c.city_id
+WHERE s.sale_date BETWEEN '2023-10-01' AND '2023-12-31'
+group by ci.city_name
+order by 2 desc;
+
+/*3.how many units of each coffee product is sold?*/
+
+select p.product_name,count(s.sale_id) as total_orders from products p
+left join sales s
+on s.product_id=p.product_id
+group by p.product_name
+order by 2 desc;
+
+/*4.what is the average sales amount per customer in each city?*/
+
+SELECT ci.city_name,sum(s.total) AS total_revenue,count(distinct s.customer_id) as total_cus,round(sum(s.total)/count(distinct s.customer_id),2) as avg_sale_per_cus
+FROM sales s
+join customers c on s.customer_id=c.customer_id
+join city ci on ci.city_id=c.city_id
+group by ci.city_name
+order by 2 desc;
+
+/*5.provide a list of cities along w their populations and esti. coffee consumers*/
+
+SELECT city_name,population,ROUND(population * 0.25, 0) AS estimated_coffee_consumers
+FROM city;
+
+
+/*6.what are the top 3 selling products in each city based on sales volume?*/
+
+select * from
+(select ci.city_name,p.product_name,count(s.sale_id) as total_orders,dense_rank() over(partition by ci.city_name order by count(s.sale_id) desc) as rnk
+from sales s
+join products p on s.product_id=p.product_id
+join customers c on s.customer_id=c.customer_id
+join city ci on ci.city_id=c.city_id
+group by  ci.city_name,p.product_name) as t1
+where rnk<=3
+
+
+/*7.how many unique customers are there in each city who have purchased coffee products? */
+
+SELECT ci.city_name,COUNT(DISTINCT s.customer_id) AS unique_customers
+FROM sales s
+JOIN products p ON s.product_id = p.product_id
+JOIN customers c ON s.customer_id = c.customer_id
+JOIN city ci ON c.city_id = ci.city_id
+WHERE p.product_id BETWEEN 1 AND 14
+GROUP BY ci.city_name
+ORDER BY unique_customers DESC;
+
+
+/*8.find each city and their avg sales per customer and avg rent per customer*/
+
+SELECT ci.city_name,round(SUM(s.total) / COUNT(DISTINCT s.customer_id),2) AS avg_sales_per_customer,
+    round(ci.estimated_rent / COUNT(DISTINCT c.customer_id),2) AS avg_rent_per_customer FROM sales s
+JOIN customers c ON s.customer_id = c.customer_id
+JOIN city ci ON c.city_id = ci.city_id
+GROUP BY ci.city_name, ci.estimated_rent
+ORDER BY avg_sales_per_customer DESC, avg_rent_per_customer ASC;
+
+
+/*9.sales growth rate:calculate the percentage growth (or decline) in sales over different time periods(monthly)*/
+
+SELECT city_name,month,monthly_sales,
+    LAG(monthly_sales) OVER (PARTITION BY city_name ORDER BY month) AS prev_sales,
+ROUND((monthly_sales - LAG(monthly_sales) OVER (PARTITION BY city_name ORDER BY month)) / LAG(monthly_sales) OVER (PARTITION BY city_name ORDER BY month) * 100, 
+    2) AS growth_percentage
+    FROM (SELECT ci.city_name,DATE_FORMAT(s.sale_date, '%Y-%m') AS month,SUM(s.total) AS monthly_sales FROM sales s
+    JOIN customers c ON s.customer_id = c.customer_id
+    JOIN city ci ON c.city_id = ci.city_id
+    GROUP BY ci.city_name, month
+) t;
+
+
+/*10.identify top 3 cities based on highest sales,total sale,total rent,total customers,esti.coffee consumers */
+
+SELECT ci.city_name,SUM(s.total) AS total_sales,COUNT(DISTINCT s.customer_id) AS total_customers,
+    ROUND((ci.population * 0.25)/1000000, 2) AS estimated_consumers_permil,ci.estimated_rent,
+    ROUND(SUM(s.total) / ci.estimated_rent, 2) AS sales_to_rent_ratio FROM sales s
+JOIN customers c ON s.customer_id = c.customer_id
+JOIN city ci ON c.city_id = ci.city_id
+GROUP BY ci.city_name, ci.population, ci.estimated_rent
+ORDER BY sales_to_rent_ratio DESC;
