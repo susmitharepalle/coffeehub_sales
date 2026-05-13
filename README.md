@@ -53,9 +53,9 @@ City 2: Jaipur
 👉 Conclusion: Low-cost, high-customer city → Best for cost-effective expansion.
 
 City 3: Chennai
-High total revenue (~9.4L), showing strong market demand.
-High average sales per customer (~22K), indicating premium spending behavior.
-Moderate rent per customer (~407), providing a balanced cost-to-demand ratio.
+1.High total revenue (~9.4L), showing strong market demand.
+2.High average sales per customer (~22K), indicating premium spending behavior.
+3.Moderate rent per customer (~407), providing a balanced cost-to-demand ratio.
 
 👉 Conclusion: Balanced city with strong demand and manageable costs → Stable growth option.
 ---
